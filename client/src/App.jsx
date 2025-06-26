@@ -15,13 +15,21 @@ function App() {
   useEffect(() => {
     // Initialize socket connection
     const newSocket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setIsConnected(true);
-      newSocket.emit('join-server');
+      // Send join-server with proper data structure
+      newSocket.emit('join-server', {
+        userId: `user_${Date.now()}`,
+        userName: 'Anonymous'
+      });
     });
 
     newSocket.on('disconnect', () => {
@@ -29,8 +37,12 @@ function App() {
       setIsConnected(false);
     });
 
-    newSocket.on('joined-server', () => {
-      console.log('Successfully joined server');
+    newSocket.on('joined-server', (data) => {
+      console.log('Successfully joined server:', data);
+    });
+
+    newSocket.on('error', (error) => {
+      console.error('Socket error:', error);
     });
 
     setSocket(newSocket);
@@ -44,7 +56,11 @@ function App() {
     if (socket && roomId && displayName) {
       setUsername(displayName);
       setCurrentRoom(roomId);
-      socket.emit('join-room', { roomId, username: displayName });
+      socket.emit('join-room', { 
+        roomId, 
+        userId: `user_${Date.now()}`,
+        userName: displayName 
+      });
     }
   };
 

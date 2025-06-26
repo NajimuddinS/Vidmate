@@ -19,18 +19,25 @@ const HomePage = ({ onJoinRoom, isConnected, apiBaseUrl }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: `${username}'s Room` }),
+        body: JSON.stringify({ 
+          userId: `user_${Date.now()}`,
+          userName: username.trim()
+        }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
-      if (data.success) {
-        onJoinRoom(data.room.id, username);
+      if (data.roomId) {
+        onJoinRoom(data.roomId, username);
       } else {
-        alert('Failed to create room');
+        alert('Failed to create room: Invalid response');
       }
     } catch (error) {
       console.error('Error creating room:', error);
-      alert('Failed to create room');
+      alert(`Failed to create room: ${error.message}`);
     } finally {
       setIsCreating(false);
     }
@@ -41,7 +48,7 @@ const HomePage = ({ onJoinRoom, isConnected, apiBaseUrl }) => {
       alert('Please enter both room ID and your name');
       return;
     }
-    onJoinRoom(roomId, username);
+    onJoinRoom(roomId.trim(), username.trim());
   };
 
   return (
@@ -92,13 +99,18 @@ const HomePage = ({ onJoinRoom, isConnected, apiBaseUrl }) => {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your name"
               className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && username.trim()) {
+                  handleCreateRoom();
+                }
+              }}
             />
           </div>
 
           {/* Create Room Button */}
           <button
             onClick={handleCreateRoom}
-            disabled={isCreating || !isConnected}
+            disabled={isCreating || !isConnected || !username.trim()}
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
           >
             <Plus className="w-5 h-5" />
@@ -124,12 +136,17 @@ const HomePage = ({ onJoinRoom, isConnected, apiBaseUrl }) => {
                 onChange={(e) => setRoomId(e.target.value)}
                 placeholder="Enter room ID"
                 className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && roomId.trim() && username.trim()) {
+                    handleJoinRoom();
+                  }
+                }}
               />
             </div>
 
             <button
               onClick={handleJoinRoom}
-              disabled={!isConnected}
+              disabled={!isConnected || !roomId.trim() || !username.trim()}
               className="w-full bg-white/20 hover:bg-white/30 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 border border-white/30"
             >
               <Users className="w-5 h-5" />
